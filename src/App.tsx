@@ -116,9 +116,25 @@ export default function App() {
 
   // --- ハンドラ（中身は自分で実装） ---
 
-  function handleRoomCardClick(_index: number) {
-    // Room のカードをクリックしたときの処理
-    // 例: setGame({ ...game, ... })
+  function handleRoomCardClick(index: number) {
+    if (game.room[index] == null) {
+      return;
+    }
+
+    // クラブかスペードの場合は、モンスターとの戦闘になる
+    if (game.room[index].suit === "clubs" || game.room[index].suit === "spades") {
+      alert('You are fighting a monster!');
+    }
+
+    // ハートの場合は、回復薬を使用する
+    else if (game.room[index].suit === "hearts") {
+      alert('You are using a health potion!');
+    }
+
+    // ダイヤモンドの場合は、武器を拾う
+    else if (game.room[index].suit === "diamonds") {
+      alert('You are picking up a weapon!');
+    }
   }
 
   function handleDungeonClick() {
