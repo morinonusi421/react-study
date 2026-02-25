@@ -135,6 +135,7 @@ export default function App() {
         ...game,
         room: game.room.map((card, i) => (i === index ? null : card)),
         equippedWeapon: game.room[index],
+        monstersSlain: [],
       });
     }
   }
