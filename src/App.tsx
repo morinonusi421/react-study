@@ -134,7 +134,13 @@ export default function App() {
 
     // クラブかスペードの場合は、モンスターとの戦闘になる
     if (game.room[index].suit === "clubs" || game.room[index].suit === "spades") {
-      alert("You are fighting a monster!");
+      // Zとりあえず今は戦闘処理は実装していないので、ダメージを受けずに敵を撃破したとして、スコアを加算(TODO: 戦闘処理を実装)
+      setGame({
+        ...game,
+        room: game.room.map((card, i) => (i === index ? null : card)),
+        score: game.score + getRankValue(game.room[index].rank),
+        monstersSlain: [...game.monstersSlain, game.room[index]],
+      });
     }
 
     // ハートの場合は、回復薬を使用する
