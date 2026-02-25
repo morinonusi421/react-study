@@ -20,6 +20,7 @@ interface GameState {
   monstersSlain: Card[]; // この武器で倒したモンスター
   health: number; // プレイヤーHP
   canFlee: boolean; // 逃げることができるかどうか
+  score: number; // スコア
 }
 
 // =====================
@@ -58,6 +59,7 @@ const INITIAL_STATE: GameState = {
   ],
   health: 20,
   canFlee: true,
+  score: 0,
 };
 
 // =====================
@@ -178,11 +180,18 @@ export default function App() {
         <span className="pile__label">Dungeon ({game.dungeon.length})</span>
       </div>
 
-      {/* HP表示 */}
+      {/* ステータス表示 */}
       <div className="status">
-        <span className="status__icon">♥</span>
-        <span className="status__value">{game.health}</span>
-        <span className="status__label">HP</span>
+        <div className="status__group">
+          <span className="status__icon">♥</span>
+          <span className="status__value">{game.health}</span>
+          <span className="status__label">HP</span>
+        </div>
+        <div className="status__group">
+          <span className="status__icon">★</span>
+          <span className="status__value">{game.score}</span>
+          <span className="status__label">Score</span>
+        </div>
       </div>
 
       {/* 中央エリア */}
