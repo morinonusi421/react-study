@@ -27,7 +27,7 @@ interface GameState {
 // =====================
 
 const ALL_RANKS: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const MONSTER_RANKS: Rank[] = ["2", "3", "4", "5", "6", "7", "8", "9", "10"];
+const NON_FACE_RANKS: Rank[] = ["2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 function buildDungeon(): Card[] {
   const cards: Card[] = [];
@@ -35,7 +35,7 @@ function buildDungeon(): Card[] {
     cards.push({ suit: "spades", rank });
     cards.push({ suit: "clubs", rank });
   }
-  for (const rank of MONSTER_RANKS) {
+  for (const rank of NON_FACE_RANKS) {
     cards.push({ suit: "hearts", rank });
     cards.push({ suit: "diamonds", rank });
   }
