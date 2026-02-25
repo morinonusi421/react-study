@@ -212,67 +212,59 @@ export default function App() {
 
   // --------------------------------
 
+  const lastSlain = game.monstersSlain[game.monstersSlain.length - 1];
+
   return (
-    <div className="table">
-      {/* Dungeon（山札） */}
-      <div className="pile" onClick={handleDungeonClick}>
-        <div className="pile__stack">
-          {game.dungeon.length > 0 ? (
-            <div className="card card--back pile__top-card" />
+    <div className="app">
+      {/* ステータスバー */}
+      <div className="status-bar">
+        <div className="status-group">
+          <span className="status-icon">♥</span>
+          <span className="status-value">{game.health}</span>
+          <span className="status-label">HP</span>
+        </div>
+        <div className="status-group">
+          <span className="status-icon">★</span>
+          <span className="status-value">{game.score}</span>
+          <span className="status-label">Score</span>
+        </div>
+      </div>
+
+      {/* Room（メイン操作エリア） */}
+      <div className="room-area">
+        <span className="room-label">Room</span>
+        <div className="room-slots">
+          {game.room.map((card, i) => (
+            <CardSlot key={i} card={card} onClick={() => handleRoomCardClick(i)} />
+          ))}
+        </div>
+      </div>
+
+      {/* 下部エリア */}
+      <div className="bottom-area">
+        {/* Dungeon（逃走） */}
+        <div className="dungeon-section" onClick={handleDungeonClick}>
+          <div className="pile-stack">
+            {game.dungeon.length > 0 ? (
+              <div className="card card--back pile-top-card" />
+            ) : (
+              <div className="card-slot pile-top-card" />
+            )}
+          </div>
+          <span className="pile-label">Dungeon ({game.dungeon.length})</span>
+        </div>
+
+        {/* 武器 */}
+        <div className="weapon-section">
+          <span className="weapon-label">Weapon</span>
+          {game.equippedWeapon ? (
+            <CardView card={game.equippedWeapon} />
           ) : (
-            <div className="card-slot pile__top-card" />
+            <div className="card-slot" />
           )}
-        </div>
-        <span className="pile__label">Dungeon ({game.dungeon.length})</span>
-      </div>
-
-      {/* ステータス表示 */}
-      <div className="status">
-        <div className="status__group">
-          <span className="status__icon">♥</span>
-          <span className="status__value">{game.health}</span>
-          <span className="status__label">HP</span>
-        </div>
-        <div className="status__group">
-          <span className="status__icon">★</span>
-          <span className="status__value">{game.score}</span>
-          <span className="status__label">Score</span>
-        </div>
-      </div>
-
-      {/* 中央エリア */}
-      <div className="center">
-        {/* Room */}
-        <div className="room">
-          <span className="room__label">Room</span>
-          <div className="room__slots">
-            {game.room.map((card, i) => (
-              <CardSlot key={i} card={card} onClick={() => handleRoomCardClick(i)} />
-            ))}
-          </div>
-        </div>
-
-        {/* 武器エリア */}
-        <div className="weapon-area">
-          {/* 装備武器 */}
-          <div className="weapon">
-            <span className="weapon__label">Equipped Weapon</span>
-            {game.equippedWeapon ? <CardView card={game.equippedWeapon} /> : <div className="card-slot" />}
-          </div>
-
-          {/* 倒したモンスター */}
-          <div className="monsters-slain">
-            <span className="monsters-slain__label">
-              Monsters slain
-              <br />
-              by this Weapon
-            </span>
-            <div className="monsters-slain__slots">
-              {game.monstersSlain.map((card, i) => (
-                <CardView key={i} card={card} />
-              ))}
-            </div>
-          </div>
+          {lastSlain && (
+            <span className="weapon-restriction">使用制限 ≤ {getRankValue(lastSlain.rank)}</span>
+          )}
         </div>
       </div>
     </div>
