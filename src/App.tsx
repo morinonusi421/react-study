@@ -120,12 +120,17 @@ export default function App() {
   }
 
   function handleDungeonClick() {
-    // Dungeon をクリックしたときの処理（カードを引くなど）
-    // 例: setGame({ ...game, ... })
-  }
+    // Null以外のRoomをシャッフルして山札の下に加える
+    const nonNullRoom = game.room.filter(card => card !== null);
+    const shuffledRoom = [...nonNullRoom].sort(() => Math.random() - 0.5);
+    const newDungeon = [...game.dungeon, ...shuffledRoom];
 
-// setGame を明示的に参照して未使用警告を抑制
-  void setGame;
+    // ダンジョンから4枚カードをドローして,roomにセットする
+    const drawnCards = newDungeon.slice(0, 4);
+    const remainingDungeon = newDungeon.slice(4);
+
+    setGame({ ...game, dungeon: remainingDungeon, room: drawnCards });
+  }
 
   // --------------------------------
 
