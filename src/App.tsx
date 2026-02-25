@@ -17,7 +17,7 @@ interface GameState {
   dungeon: Card[]; // 山札
   room: (Card | null)[]; // 場に出た4枚
   equippedWeapon: Card | null; // 装備中の武器
-  monstersSlain: Card[]; // この武器で倒したモンスター
+  lastSlainValue: number | null; // 武器で最後に倒したモンスターの数値（使用制限チェック用）
   health: number; // プレイヤーHP
   canFlee: boolean; // 逃げることができるかどうか
   canUsePotion: boolean; // 回復薬を使用できるかどうか
@@ -50,7 +50,7 @@ function buildInitialState(): GameState {
     dungeon: shuffled.slice(4),
     room: shuffled.slice(0, 4),
     equippedWeapon: null,
-    monstersSlain: [],
+    lastSlainValue: null,
     health: 20,
     canFlee: true,
     canUsePotion: true,
@@ -155,7 +155,7 @@ export default function App() {
         ...game,
         room: newRoom,
         score: game.score + getRankValue(card.rank),
-        monstersSlain: [...game.monstersSlain, card],
+        lastSlainValue: getRankValue(card.rank),
       }));
     }
 
@@ -179,7 +179,7 @@ export default function App() {
         ...game,
         room: newRoom,
         equippedWeapon: card,
-        monstersSlain: [],
+        lastSlainValue: null,
       }));
     }
   }
@@ -207,8 +207,6 @@ export default function App() {
   }
 
   // --------------------------------
-
-  const lastSlain = game.monstersSlain[game.monstersSlain.length - 1];
 
   return (
     <div className="app">
@@ -258,8 +256,8 @@ export default function App() {
           ) : (
             <div className="card-slot" />
           )}
-          {lastSlain && (
-            <span className="weapon-restriction">使用制限 ≤ {getRankValue(lastSlain.rank)}</span>
+          {game.lastSlainValue !== null && (
+            <span className="weapon-restriction">使用制限 ≤ {game.lastSlainValue}</span>
           )}
         </div>
       </div>
