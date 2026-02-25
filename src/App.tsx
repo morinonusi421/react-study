@@ -20,6 +20,7 @@ interface GameState {
   monstersSlain: Card[]; // この武器で倒したモンスター
   health: number; // プレイヤーHP
   canFlee: boolean; // 逃げることができるかどうか
+  canUsePotion: boolean; // 回復薬を使用できるかどうか
   score: number; // スコア
 }
 
@@ -59,6 +60,7 @@ const INITIAL_STATE: GameState = {
   ],
   health: 20,
   canFlee: true,
+  canUsePotion: true,
   score: 0,
 };
 
@@ -109,6 +111,15 @@ function CardSlot({ card, onClick }: { card: Card | null; onClick?: () => void }
   return <div className="card-slot" />;
 }
 
+// ランクをnumberに変換する関数
+function getRankValue(rank: Rank): number {
+  if (rank === "A") return 14;
+  if (rank === "K") return 13;
+  if (rank === "Q") return 12;
+  if (rank === "J") return 11;
+  return parseInt(rank);
+}
+
 // =====================
 // メインコンポーネント
 // =====================
@@ -128,9 +139,17 @@ export default function App() {
 
     // ハートの場合は、回復薬を使用する
     else if (game.room[index].suit === "hearts") {
-      alert("You are using a health potion!");
+      if (game.canUsePotion) {
+        setGame({
+          ...game,
+          room: game.room.map((card, i) => (i === index ? null : card)),
+          health: Math.min(game.health + getRankValue(game.room[index].rank), 20),
+          canUsePotion: false,
+        });
+      } else {
+        alert("You cannot use a health potion!");
+      }
     }
-
     // ダイヤモンドの場合は、武器を拾う
     else if (game.room[index].suit === "diamonds") {
       setGame({
