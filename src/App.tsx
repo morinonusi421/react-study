@@ -176,27 +176,26 @@ export default function App() {
           </div>
         </div>
 
-        {/* 装備武器 */}
-        <div className="weapon">
-          <div className="weapon__stack">
-            {game.equippedWeapon ? (
-              <div className="weapon__card">
-                <CardView card={game.equippedWeapon} />
-              </div>
-            ) : (
-              <div className="card-slot weapon__card" />
-            )}
-            {game.monstersSlain.map((card, i) => (
-              <div key={i} className="weapon__monster">
-                <CardView card={card} />
-              </div>
-            ))}
-          </div>
-          <div className="weapon__info">
+        {/* 武器エリア */}
+        <div className="weapon-area">
+          {/* 装備武器 */}
+          <div className="weapon">
             <span className="weapon__label">Equipped Weapon</span>
-            <span className="weapon__sublabel">
-              Monsters slain<br />by this Weapon
-            </span>
+            {game.equippedWeapon ? (
+              <CardView card={game.equippedWeapon} />
+            ) : (
+              <div className="card-slot" />
+            )}
+          </div>
+
+          {/* 倒したモンスター */}
+          <div className="monsters-slain">
+            <span className="monsters-slain__label">Monsters slain<br />by this Weapon</span>
+            <div className="monsters-slain__slots">
+              {game.monstersSlain.map((card, i) => (
+                <CardView key={i} card={card} />
+              ))}
+            </div>
           </div>
         </div>
 

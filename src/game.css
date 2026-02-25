@@ -243,43 +243,17 @@
    装備武器（Equipped Weapon）
    ===================== */
 
-.weapon {
+.weapon-area {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 24px;
 }
 
-.weapon__stack {
-  position: relative;
-  /* 武器カード + モンスターカードが上に覗く分の高さ */
-  width: 72px;
-  height: 180px;
-}
-
-/* 武器カードは一番手前 */
-.weapon__card {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  z-index: 10;
-}
-
-/* モンスターカードは武器カードの後ろで上端だけ覗く */
-.weapon__monster {
-  position: absolute;
-  left: 0;
-  z-index: 1;
-}
-
-.weapon__monster:nth-child(2) { top: 0; }
-.weapon__monster:nth-child(3) { top: 24px; }
-.weapon__monster:nth-child(4) { top: 48px; }
-
-.weapon__info {
+.weapon {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 16px;
+  align-items: center;
+  gap: 8px;
 }
 
 .weapon__label {
@@ -288,8 +262,23 @@
   font-weight: bold;
 }
 
-.weapon__sublabel {
+.monsters-slain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monsters-slain__label {
   color: #000;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.monsters-slain__slots {
+  display: flex;
+  flex-direction: row;
+}
+
+.monsters-slain__slots .card + .card {
+  margin-left: -48px;
 }
