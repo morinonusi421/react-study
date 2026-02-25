@@ -19,6 +19,7 @@ interface GameState {
   equippedWeapon: Card | null; // 装備中の武器
   monstersSlain: Card[];    // この武器で倒したモンスター
   health: number;           // プレイヤーHP
+  canFlee: boolean;         // 逃げることができるかどうか
 }
 
 // =====================
@@ -56,6 +57,7 @@ const INITIAL_STATE: GameState = {
     { suit: 'diamonds', rank: '4' },
   ],
   health: 20,
+  canFlee: true,
 };
 
 // =====================
@@ -120,16 +122,24 @@ export default function App() {
   }
 
   function handleDungeonClick() {
-    // Null以外のRoomをシャッフルして山札の下に加える
-    const nonNullRoom = game.room.filter(card => card !== null);
-    const shuffledRoom = [...nonNullRoom].sort(() => Math.random() - 0.5);
-    const newDungeon = [...game.dungeon, ...shuffledRoom];
 
-    // ダンジョンから4枚カードをドローして,roomにセットする
-    const drawnCards = newDungeon.slice(0, 4);
-    const remainingDungeon = newDungeon.slice(4);
+      if (game.canFlee) {
+      // Null以外のRoomをシャッフルして山札の下に加える
+      const nonNullRoom = game.room.filter(card => card !== null);
+      const shuffledRoom = [...nonNullRoom].sort(() => Math.random() - 0.5);
+      const newDungeon = [...game.dungeon, ...shuffledRoom];
 
-    setGame({ ...game, dungeon: remainingDungeon, room: drawnCards });
+      // ダンジョンから4枚カードをドローして,roomにセットする
+      const drawnCards = newDungeon.slice(0, 4);
+      const remainingDungeon = newDungeon.slice(4);
+
+      setGame({ ...game, dungeon: remainingDungeon, room: drawnCards, canFlee: false });
+    }
+
+    else{
+      alert('You cannot flee!');
+    }
+
   }
 
   // --------------------------------
