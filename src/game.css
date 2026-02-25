@@ -1,0 +1,295 @@
+/*
+  game.css — トランプゲームテーブルのレイアウト
+  =================================================
+  想定する HTML 構造:
+
+  <div className="table">
+
+    <div className="pile">
+      <div className="pile__stack">
+        <div className="card card--back pile__top-card"></div>
+      </div>
+      <span className="pile__label">Dungeon</span>
+    </div>
+
+    <div className="center">
+      <div className="room">
+        <span className="room__label">Room</span>
+        <div className="room__slots">
+          <div className="card-slot"></div>
+          <div className="card-slot"></div>
+          <div className="card-slot"></div>
+          <div className="card-slot"></div>
+        </div>
+      </div>
+
+      <div className="weapon">
+        <div className="weapon__stack">
+          <div className="card weapon__card"></div>
+          <div className="card card--monster weapon__monster"></div>
+          <div className="card card--monster weapon__monster"></div>
+          <div className="card card--monster weapon__monster"></div>
+        </div>
+        <div className="weapon__info">
+          <span className="weapon__label">Equipped Weapon</span>
+          <span className="weapon__sublabel">Monsters slain<br/>by this Weapon</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="pile">
+      <div className="pile__stack">
+        <div className="card card--back pile__top-card"></div>
+      </div>
+      <span className="pile__label">Discard</span>
+    </div>
+
+  </div>
+*/
+
+/* =====================
+   カードの基本サイズ
+   ===================== */
+
+.card {
+  position: relative;
+  width: 72px;
+  height: 104px;
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 赤スート（ハート・ダイヤ） */
+.card--red {
+  color: #cc0000;
+}
+
+/* 黒スート（クラブ・スペード） */
+.card--black {
+  color: #111;
+}
+
+/* 裏面カード（Dungeon / Discard 用） */
+.card--back {
+  background: #555;
+  border-color: #333;
+  cursor: default;
+}
+
+/* 空のカードスロット */
+.card-slot {
+  width: 72px;
+  height: 104px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* =====================
+   カードの内部レイアウト
+   ===================== */
+
+/* 左上・右下のコーナー（ランク＋スート） */
+.card__corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.card__corner--top {
+  top: 4px;
+  left: 6px;
+}
+
+.card__corner--bottom {
+  bottom: 4px;
+  right: 6px;
+  transform: rotate(180deg);
+}
+
+.card__rank {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.card__suit {
+  font-size: 11px;
+}
+
+/* 中央の大きいスート記号 */
+.card__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.card__suit--large {
+  font-size: 30px;
+}
+
+/* =====================
+   テーブル全体
+   ===================== */
+
+.table {
+  background-color: #6b8c3a;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 28px 32px;
+  gap: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+/* =====================
+   山札（Dungeon / Discard）
+   ===================== */
+
+.pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pile__stack {
+  position: relative;
+  width: 72px;
+  height: 104px;
+}
+
+/* 重なっているカードを疑似要素で表現 */
+.pile__stack::before,
+.pile__stack::after {
+  content: '';
+  position: absolute;
+  width: 72px;
+  height: 104px;
+  background: #555;
+  border: 2px solid #333;
+  border-radius: 6px;
+}
+
+.pile__stack::before {
+  top: -6px;
+  left: -6px;
+  z-index: 0;
+}
+
+.pile__stack::after {
+  top: -3px;
+  left: -3px;
+  z-index: 1;
+}
+
+.pile__top-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.pile__label {
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* =====================
+   中央エリア
+   ===================== */
+
+.center {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+/* =====================
+   Room（4枚スロット）
+   ===================== */
+
+.room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.room__label {
+  color: #000;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.room__slots {
+  display: flex;
+  gap: 12px;
+}
+
+/* =====================
+   装備武器（Equipped Weapon）
+   ===================== */
+
+.weapon {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.weapon__stack {
+  position: relative;
+  /* 武器カード + モンスターカードが上に覗く分の高さ */
+  width: 72px;
+  height: 180px;
+}
+
+/* 武器カードは一番手前 */
+.weapon__card {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+}
+
+/* モンスターカードは武器カードの後ろで上端だけ覗く */
+.weapon__monster {
+  position: absolute;
+  left: 0;
+  z-index: 1;
+}
+
+.weapon__monster:nth-child(2) { top: 0; }
+.weapon__monster:nth-child(3) { top: 24px; }
+.weapon__monster:nth-child(4) { top: 48px; }
+
+.weapon__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 16px;
+}
+
+.weapon__label {
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.weapon__sublabel {
+  color: #000;
+  font-size: 13px;
+  line-height: 1.5;
+}

@@ -1,128 +1,193 @@
 import React, { useState } from 'react';
+import './game.css';
 
-type SquareValue = 'X' | 'O' | null;
+// =====================
+// 型定義
+// =====================
 
-interface SquareProps {
-  value: SquareValue;
-  onSquareClick: () => void;
+type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades';
+type Rank = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K';
+
+interface Card {
+  suit: Suit;
+  rank: Rank;
 }
 
-function Square({ value, onSquareClick }: SquareProps) {
-  return (
-    <button className="square" onClick={onSquareClick}>
-      {value}
-    </button>
-  );
+interface GameState {
+  dungeon: Card[];          // 山札
+  room: (Card | null)[];    // 場に出た4枚
+  equippedWeapon: Card | null; // 装備中の武器
+  monstersSlain: Card[];    // この武器で倒したモンスター
+  health: number;           // プレイヤーHP
 }
 
-interface BoardProps {
-  xIsNext: boolean;
-  squares: SquareValue[];
-  onPlay: (nextSquares: SquareValue[]) => void;
+// =====================
+// 初期状態
+// =====================
+
+const ALL_RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const MONSTER_RANKS: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10'];
+
+function buildDungeon(): Card[] {
+  const cards: Card[] = [];
+  for (const rank of ALL_RANKS) {
+    cards.push({ suit: 'spades', rank });
+    cards.push({ suit: 'clubs',  rank });
+  }
+  for (const rank of MONSTER_RANKS) {
+    cards.push({ suit: 'hearts',   rank });
+    cards.push({ suit: 'diamonds', rank });
+  }
+  return cards;
 }
 
-function Board({ xIsNext, squares, onPlay }: BoardProps) {
-  function handleClick(i: number) {
-    if (calculateWinner(squares) || squares[i]) {
-      return;
-    }
-    const nextSquares = squares.slice();
-    if (xIsNext) {
-      nextSquares[i] = 'X';
-    } else {
-      nextSquares[i] = 'O';
-    }
-    onPlay(nextSquares);
-  }
+const INITIAL_STATE: GameState = {
+  dungeon: buildDungeon(),
+  room: [
+    { suit: 'hearts',   rank: 'A' },
+    { suit: 'diamonds', rank: '7' },
+    { suit: 'clubs',    rank: 'J' },
+    { suit: 'spades',   rank: '9' },
+  ],
+  equippedWeapon: { suit: 'spades', rank: '6' },
+  monstersSlain: [
+    { suit: 'clubs',    rank: '3' },
+    { suit: 'hearts',   rank: '5' },
+    { suit: 'diamonds', rank: '4' },
+  ],
+  health: 20,
+};
 
-  const winner = calculateWinner(squares);
-  let status: string;
-  if (winner) {
-    status = 'Winner: ' + winner;
-  } else {
-    status = 'Next player: ' + (xIsNext ? 'X' : 'O');
-  }
+// =====================
+// サブコンポーネント
+// =====================
 
-  return (
-    <>
-      <div className="status">{status}</div>
-      <div className="board-row">
-        <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
-        <Square value={squares[1]} onSquareClick={() => handleClick(1)} />
-        <Square value={squares[2]} onSquareClick={() => handleClick(2)} />
-      </div>
-      <div className="board-row">
-        <Square value={squares[3]} onSquareClick={() => handleClick(3)} />
-        <Square value={squares[4]} onSquareClick={() => handleClick(4)} />
-        <Square value={squares[5]} onSquareClick={() => handleClick(5)} />
-      </div>
-      <div className="board-row">
-        <Square value={squares[6]} onSquareClick={() => handleClick(6)} />
-        <Square value={squares[7]} onSquareClick={() => handleClick(7)} />
-        <Square value={squares[8]} onSquareClick={() => handleClick(8)} />
-      </div>
-    </>
-  );
+interface CardViewProps {
+  card: Card;
+  onClick?: () => void;
 }
 
-export default function Game() {
-  const [history, setHistory] = useState<SquareValue[][]>([Array(9).fill(null)]);
-  const [currentMove, setCurrentMove] = useState<number>(0);
-  const xIsNext = currentMove % 2 === 0;
-  const currentSquares = history[currentMove];
+const SUIT_SYMBOL: Record<Suit, string> = {
+  hearts:   '♥',
+  diamonds: '♦',
+  clubs:    '♣',
+  spades:   '♠',
+};
 
-  function handlePlay(nextSquares: SquareValue[]) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
-    setHistory(nextHistory);
-    setCurrentMove(nextHistory.length - 1);
-  }
-
-  function jumpTo(nextMove: number) {
-    setCurrentMove(nextMove);
-  }
-
-  const moves = history.map((squares, move) => {
-    let description: string;
-    if (move > 0) {
-      description = 'Go to move #' + move;
-    } else {
-      description = 'Go to game start';
-    }
-    return (
-      <li key={move}>
-        <button onClick={() => jumpTo(move)}>{description}</button>
-      </li>
-    );
-  });
+function CardView({ card, onClick }: CardViewProps) {
+  const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+  const symbol = SUIT_SYMBOL[card.suit];
 
   return (
-    <div className="game">
-      <div className="game-board">
-        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+    <div className={`card ${isRed ? 'card--red' : 'card--black'}`} onClick={onClick}>
+      {/* 左上 */}
+      <div className="card__corner card__corner--top">
+        <span className="card__rank">{card.rank}</span>
+        <span className="card__suit">{symbol}</span>
       </div>
-      <div className="game-info">
-        <ol>{moves}</ol>
+      {/* 中央 */}
+      <div className="card__center">
+        <span className="card__suit card__suit--large">{symbol}</span>
+      </div>
+      {/* 右下（180度回転） */}
+      <div className="card__corner card__corner--bottom">
+        <span className="card__rank">{card.rank}</span>
+        <span className="card__suit">{symbol}</span>
       </div>
     </div>
   );
 }
 
-function calculateWinner(squares: SquareValue[]): SquareValue {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ];
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
-    }
+function CardSlot({ card, onClick }: { card: Card | null; onClick?: () => void }) {
+  if (card) {
+    return <CardView card={card} onClick={onClick} />;
   }
-  return null;
+  return <div className="card-slot" />;
+}
+
+// =====================
+// メインコンポーネント
+// =====================
+
+export default function App() {
+  const [game, setGame] = useState<GameState>(INITIAL_STATE);
+
+  // --- ハンドラ（中身は自分で実装） ---
+
+  function handleRoomCardClick(_index: number) {
+    // Room のカードをクリックしたときの処理
+    // 例: setGame({ ...game, ... })
+  }
+
+  function handleDungeonClick() {
+    // Dungeon をクリックしたときの処理（カードを引くなど）
+    // 例: setGame({ ...game, ... })
+  }
+
+// setGame を明示的に参照して未使用警告を抑制
+  void setGame;
+
+  // --------------------------------
+
+  return (
+    <div className="table">
+
+      {/* Dungeon（山札） */}
+      <div className="pile" onClick={handleDungeonClick}>
+        <div className="pile__stack">
+          {game.dungeon.length > 0 ? (
+            <div className="card card--back pile__top-card" />
+          ) : (
+            <div className="card-slot pile__top-card" />
+          )}
+        </div>
+        <span className="pile__label">Dungeon ({game.dungeon.length})</span>
+      </div>
+
+      {/* 中央エリア */}
+      <div className="center">
+
+        {/* Room */}
+        <div className="room">
+          <span className="room__label">Room</span>
+          <div className="room__slots">
+            {game.room.map((card, i) => (
+              <CardSlot
+                key={i}
+                card={card}
+                onClick={() => handleRoomCardClick(i)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 装備武器 */}
+        <div className="weapon">
+          <div className="weapon__stack">
+            {game.equippedWeapon ? (
+              <div className="weapon__card">
+                <CardView card={game.equippedWeapon} />
+              </div>
+            ) : (
+              <div className="card-slot weapon__card" />
+            )}
+            {game.monstersSlain.map((card, i) => (
+              <div key={i} className="weapon__monster">
+                <CardView card={card} />
+              </div>
+            ))}
+          </div>
+          <div className="weapon__info">
+            <span className="weapon__label">Equipped Weapon</span>
+            <span className="weapon__sublabel">
+              Monsters slain<br />by this Weapon
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+
+    </div>
+  );
 }
