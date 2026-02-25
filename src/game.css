@@ -206,56 +206,48 @@
   flex-shrink: 0;
 }
 
-/* Dungeon（山札・逃走） */
+/* Dungeon（逃走） */
 
 .dungeon-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.dungeon-count {
+  font-size: 48px;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+}
+
+.dungeon-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.5px;
+}
+
+.flee-button {
+  margin-top: 4px;
+  padding: 6px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
 }
 
-.pile-stack {
-  position: relative;
-  width: 80px;
-  height: 115px;
+.flee-button--active {
+  background: #e05c2a;
+  color: #fff;
 }
 
-.pile-stack::before,
-.pile-stack::after {
-  content: '';
-  position: absolute;
-  width: 80px;
-  height: 115px;
-  background: #555;
-  border: 2px solid #333;
-  border-radius: 6px;
-}
-
-.pile-stack::before {
-  top: -6px;
-  left: -6px;
-  z-index: 0;
-}
-
-.pile-stack::after {
-  top: -3px;
-  left: -3px;
-  z-index: 1;
-}
-
-.pile-top-card {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-}
-
-.pile-label {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 12px;
-  font-weight: bold;
+.flee-button--disabled {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: default;
 }
 
 /* 武器エリア */

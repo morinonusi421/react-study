@@ -148,16 +148,14 @@ export default function App() {
     }
 
     const card = game.room[index]!;
-    const newRoom = game.room.map((c, i) => (i === index ? null : c));
-
+    const baseState = { ...game, room: game.room.map((c, i) => (i === index ? null : c)), canFlee: false };
     const value = getRankValue(card.rank);
 
     // クラブかスペードの場合は、モンスターとの戦闘になる
     if (card.suit === "clubs" || card.suit === "spades") {
       // TODO: 戦闘処理を実装。今はダメージを受けずに撃破したとしてスコアのみ加算
       setGame(advanceRoomIfNeeded({
-        ...game,
-        room: newRoom,
+        ...baseState,
         score: game.score + value,
         lastSlainValue: value,
         logs: [...game.logs, `モンスター（Lv.${value}）を倒した！`],
@@ -169,16 +167,14 @@ export default function App() {
       if (game.canUsePotion) {
         const healed = Math.min(game.health + value, 20) - game.health;
         setGame(advanceRoomIfNeeded({
-          ...game,
-          room: newRoom,
+          ...baseState,
           health: game.health + healed,
           canUsePotion: false,
           logs: [...game.logs, `回復薬を使った！（HP +${healed}）`],
         }));
       } else {
         setGame(advanceRoomIfNeeded({
-          ...game,
-          room: newRoom,
+          ...baseState,
           logs: [...game.logs, "回復薬を捨てた（このターンはすでに使用済み）"],
         }));
       }
@@ -187,8 +183,7 @@ export default function App() {
     // ダイヤモンドの場合は、武器を拾う
     else if (card.suit === "diamonds") {
       setGame(advanceRoomIfNeeded({
-        ...game,
-        room: newRoom,
+        ...baseState,
         equippedWeapon: card,
         lastSlainValue: null,
         logs: [...game.logs, `武器（Lv.${value}）を装備した！`],
@@ -215,7 +210,9 @@ export default function App() {
         logs: [...game.logs, "部屋から逃げた！"],
       });
     } else {
-      setGame({ ...game, logs: [...game.logs, "連続して逃げることはできない！"] });
+      const isInProgress = game.room.some((c) => c === null);
+      const msg = isInProgress ? "攻略中のフロアからは逃げられない！" : "連続して逃げることはできない！";
+      setGame({ ...game, logs: [...game.logs, msg] });
     }
   }
 
@@ -263,16 +260,16 @@ export default function App() {
 
       {/* 下部エリア */}
       <div className="bottom-area">
-        {/* Dungeon（逃走） */}
-        <div className="dungeon-section" onClick={handleDungeonClick}>
-          <div className="pile-stack">
-            {game.dungeon.length > 0 ? (
-              <div className="card card--back pile-top-card" />
-            ) : (
-              <div className="card-slot pile-top-card" />
-            )}
-          </div>
-          <span className="pile-label">Dungeon ({game.dungeon.length})</span>
+        {/* Dungeon */}
+        <div className="dungeon-section">
+          <span className="dungeon-count">{game.dungeon.length}</span>
+          <span className="dungeon-label">残り山札</span>
+          <button
+            className={`flee-button ${game.canFlee ? "flee-button--active" : "flee-button--disabled"}`}
+            onClick={handleDungeonClick}
+          >
+            逃走
+          </button>
         </div>
 
         {/* 武器 */}
