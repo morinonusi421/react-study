@@ -175,6 +175,13 @@ export default function App() {
         <span className="pile__label">Dungeon ({game.dungeon.length})</span>
       </div>
 
+      {/* HP表示 */}
+      <div className="status">
+        <span className="status__icon">♥</span>
+        <span className="status__value">{game.health}</span>
+        <span className="status__label">HP</span>
+      </div>
+
       {/* 中央エリア */}
       <div className="center">
 
