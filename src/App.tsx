@@ -153,12 +153,35 @@ export default function App() {
 
     // クラブかスペードの場合は、モンスターとの戦闘になる
     if (card.suit === "clubs" || card.suit === "spades") {
-      // TODO: 戦闘処理を実装。今はダメージを受けずに撃破したとしてスコアのみ加算
+      const weaponValue = game.equippedWeapon ? getRankValue(game.equippedWeapon.rank) : null;
+      const canUseWeapon = weaponValue !== null && (game.lastSlainValue === null || value <= game.lastSlainValue);
+
+      let damage: number;
+      let newLastSlainValue = game.lastSlainValue;
+      let combatLog: string;
+
+      if (canUseWeapon) {
+        damage = Math.max(0, value - weaponValue!);
+        newLastSlainValue = value;
+        combatLog = damage > 0
+          ? `モンスター（Lv.${value}）を武器で撃退！ ${damage}ダメージ`
+          : `モンスター（Lv.${value}）を武器で撃退！ ノーダメージ`;
+      } else {
+        damage = value;
+        const reason = weaponValue !== null ? "（武器使用制限）" : "";
+        combatLog = `モンスター（Lv.${value}）と素手で戦った！ ${damage}ダメージ${reason}`;
+      }
+
+      const newHealth = Math.max(0, game.health - damage);
+      const newLogs = [...game.logs, combatLog];
+      if (newHealth === 0) newLogs.push("ゲームオーバー...");
+
       setGame(advanceRoomIfNeeded({
         ...baseState,
+        health: newHealth,
         score: game.score + value,
-        lastSlainValue: value,
-        logs: [...game.logs, `モンスター（Lv.${value}）を倒した！`],
+        lastSlainValue: newLastSlainValue,
+        logs: newLogs,
       }));
     }
 
