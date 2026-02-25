@@ -44,25 +44,21 @@ function buildDungeon(): Card[] {
   return cards;
 }
 
-const INITIAL_STATE: GameState = {
-  dungeon: buildDungeon(),
-  room: [
-    { suit: "hearts", rank: "A" },
-    { suit: "diamonds", rank: "7" },
-    { suit: "clubs", rank: "J" },
-    { suit: "spades", rank: "9" },
-  ],
-  equippedWeapon: { suit: "spades", rank: "6" },
-  monstersSlain: [
-    { suit: "clubs", rank: "3" },
-    { suit: "hearts", rank: "5" },
-    { suit: "diamonds", rank: "4" },
-  ],
-  health: 20,
-  canFlee: true,
-  canUsePotion: true,
-  score: 0,
-};
+function buildInitialState(): GameState {
+  const shuffled = [...buildDungeon()].sort(() => Math.random() - 0.5);
+  return {
+    dungeon: shuffled.slice(4),
+    room: shuffled.slice(0, 4),
+    equippedWeapon: null,
+    monstersSlain: [],
+    health: 20,
+    canFlee: true,
+    canUsePotion: true,
+    score: 0,
+  };
+}
+
+const INITIAL_STATE: GameState = buildInitialState();
 
 // =====================
 // サブコンポーネント
