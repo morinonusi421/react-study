@@ -114,8 +114,6 @@ function CardSlot({ card, onClick }: { card: Card | null; onClick?: () => void }
 export default function App() {
   const [game, setGame] = useState<GameState>(INITIAL_STATE);
 
-  // --- ハンドラ（中身は自分で実装） ---
-
   function handleRoomCardClick(index: number) {
     if (game.room[index] == null) {
       return;
@@ -133,7 +131,11 @@ export default function App() {
 
     // ダイヤモンドの場合は、武器を拾う
     else if (game.room[index].suit === "diamonds") {
-      alert("You are picking up a weapon!");
+      setGame({
+        ...game,
+        room: game.room.map((card, i) => (i === index ? null : card)),
+        equippedWeapon: game.room[index],
+      });
     }
   }
 
