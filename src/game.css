@@ -143,13 +143,12 @@
    ===================== */
 
 .room-area {
-  flex: 1;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 14px;
-  padding: 0 16px;
+  padding: 20px 16px 16px;
 }
 
 .room-label {
@@ -163,6 +162,34 @@
 .room-slots {
   display: flex;
   gap: 10px;
+}
+
+/* =====================
+   メッセージエリア
+   ===================== */
+
+.log-area {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 60px;
+}
+
+.log-entry {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.log-entry::before {
+  content: "▸ ";
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* =====================

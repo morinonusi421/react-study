@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./game.css";
 
 // =====================
@@ -22,6 +22,7 @@ interface GameState {
   canFlee: boolean; // 逃げることができるかどうか
   canUsePotion: boolean; // 回復薬を使用できるかどうか
   score: number; // スコア
+  logs: string[]; // ゲームログ
 }
 
 // =====================
@@ -55,6 +56,7 @@ function buildInitialState(): GameState {
     canFlee: true,
     canUsePotion: true,
     score: 0,
+    logs: ["ダンジョンに挑む！"],
   };
 }
 
@@ -148,28 +150,37 @@ export default function App() {
     const card = game.room[index]!;
     const newRoom = game.room.map((c, i) => (i === index ? null : c));
 
+    const value = getRankValue(card.rank);
+
     // クラブかスペードの場合は、モンスターとの戦闘になる
     if (card.suit === "clubs" || card.suit === "spades") {
       // TODO: 戦闘処理を実装。今はダメージを受けずに撃破したとしてスコアのみ加算
       setGame(advanceRoomIfNeeded({
         ...game,
         room: newRoom,
-        score: game.score + getRankValue(card.rank),
-        lastSlainValue: getRankValue(card.rank),
+        score: game.score + value,
+        lastSlainValue: value,
+        logs: [...game.logs, `モンスター（Lv.${value}）を倒した！`],
       }));
     }
 
     // ハートの場合は、回復薬を使用する
     else if (card.suit === "hearts") {
       if (game.canUsePotion) {
+        const healed = Math.min(game.health + value, 20) - game.health;
         setGame(advanceRoomIfNeeded({
           ...game,
           room: newRoom,
-          health: Math.min(game.health + getRankValue(card.rank), 20),
+          health: game.health + healed,
           canUsePotion: false,
+          logs: [...game.logs, `回復薬を使った！（HP +${healed}）`],
         }));
       } else {
-        alert("You cannot use a health potion!");
+        setGame(advanceRoomIfNeeded({
+          ...game,
+          room: newRoom,
+          logs: [...game.logs, "回復薬を捨てた（このターンはすでに使用済み）"],
+        }));
       }
     }
 
@@ -180,6 +191,7 @@ export default function App() {
         room: newRoom,
         equippedWeapon: card,
         lastSlainValue: null,
+        logs: [...game.logs, `武器（Lv.${value}）を装備した！`],
       }));
     }
   }
@@ -200,13 +212,21 @@ export default function App() {
         dungeon: remainingDungeon,
         room: drawnCards,
         canFlee: false,
+        logs: [...game.logs, "部屋から逃げた！"],
       });
     } else {
-      alert("You cannot flee!");
+      setGame({ ...game, logs: [...game.logs, "連続して逃げることはできない！"] });
     }
   }
 
   // --------------------------------
+
+  const logRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [game.logs]);
 
   return (
     <div className="app">
@@ -232,6 +252,13 @@ export default function App() {
             <CardSlot key={i} card={card} onClick={() => handleRoomCardClick(i)} />
           ))}
         </div>
+      </div>
+
+      {/* ログエリア */}
+      <div className="log-area" ref={logRef}>
+        {game.logs.map((log, i) => (
+          <div key={i} className="log-entry">{log}</div>
+        ))}
       </div>
 
       {/* 下部エリア */}
