@@ -120,6 +120,23 @@ function getRankValue(rank: Rank): number {
   return parseInt(rank);
 }
 
+// roomの残りが1枚になったら山札から3枚補充し、ターンフラグをリセットする
+function advanceRoomIfNeeded(state: GameState): GameState {
+  const remaining = state.room.filter((c): c is Card => c !== null);
+  if (remaining.length !== 1) return state;
+
+  const drawn = state.dungeon.slice(0, 3);
+  const newDungeon = state.dungeon.slice(3);
+
+  return {
+    ...state,
+    room: [...remaining, ...drawn],
+    dungeon: newDungeon,
+    canFlee: true,
+    canUsePotion: true,
+  };
+}
+
 // =====================
 // メインコンポーネント
 // =====================
@@ -132,38 +149,42 @@ export default function App() {
       return;
     }
 
+    const card = game.room[index]!;
+    const newRoom = game.room.map((c, i) => (i === index ? null : c));
+
     // クラブかスペードの場合は、モンスターとの戦闘になる
-    if (game.room[index].suit === "clubs" || game.room[index].suit === "spades") {
-      // Zとりあえず今は戦闘処理は実装していないので、ダメージを受けずに敵を撃破したとして、スコアを加算(TODO: 戦闘処理を実装)
-      setGame({
+    if (card.suit === "clubs" || card.suit === "spades") {
+      // TODO: 戦闘処理を実装。今はダメージを受けずに撃破したとしてスコアのみ加算
+      setGame(advanceRoomIfNeeded({
         ...game,
-        room: game.room.map((card, i) => (i === index ? null : card)),
-        score: game.score + getRankValue(game.room[index].rank),
-        monstersSlain: [...game.monstersSlain, game.room[index]],
-      });
+        room: newRoom,
+        score: game.score + getRankValue(card.rank),
+        monstersSlain: [...game.monstersSlain, card],
+      }));
     }
 
     // ハートの場合は、回復薬を使用する
-    else if (game.room[index].suit === "hearts") {
+    else if (card.suit === "hearts") {
       if (game.canUsePotion) {
-        setGame({
+        setGame(advanceRoomIfNeeded({
           ...game,
-          room: game.room.map((card, i) => (i === index ? null : card)),
-          health: Math.min(game.health + getRankValue(game.room[index].rank), 20),
+          room: newRoom,
+          health: Math.min(game.health + getRankValue(card.rank), 20),
           canUsePotion: false,
-        });
+        }));
       } else {
         alert("You cannot use a health potion!");
       }
     }
+
     // ダイヤモンドの場合は、武器を拾う
-    else if (game.room[index].suit === "diamonds") {
-      setGame({
+    else if (card.suit === "diamonds") {
+      setGame(advanceRoomIfNeeded({
         ...game,
-        room: game.room.map((card, i) => (i === index ? null : card)),
-        equippedWeapon: game.room[index],
+        room: newRoom,
+        equippedWeapon: card,
         monstersSlain: [],
-      });
+      }));
     }
   }
 
