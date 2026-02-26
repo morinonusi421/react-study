@@ -178,7 +178,7 @@ export default function App() {
     // クラブかスペードの場合は、モンスターとの戦闘になる
     if (card.suit === "clubs" || card.suit === "spades") {
       const weaponValue = game.equippedWeapon ? getRankValue(game.equippedWeapon.rank) : null;
-      const canUseWeapon = weaponValue !== null && (game.lastSlainValue === null || value <= game.lastSlainValue);
+      const canUseWeapon = weaponValue !== null && (game.lastSlainValue === null || value < game.lastSlainValue);
 
       let damage: number;
       let newLastSlainValue = game.lastSlainValue;
