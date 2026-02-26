@@ -23,6 +23,7 @@ interface GameState {
   canUsePotion: boolean; // 回復薬を使用できるかどうか
   score: number; // スコア
   logs: string[]; // ゲームログ
+  phase: "playing" | "game-over"; // ゲームフェーズ
 }
 
 // =====================
@@ -57,6 +58,7 @@ function buildInitialState(): GameState {
     canUsePotion: true,
     score: 0,
     logs: ["ダンジョンに挑む！"],
+    phase: "playing",
   };
 }
 
@@ -143,7 +145,7 @@ export default function App() {
   const [game, setGame] = useState<GameState>(INITIAL_STATE);
 
   function handleRoomCardClick(index: number) {
-    if (game.room[index] == null) {
+    if (game.phase !== "playing" || game.room[index] == null) {
       return;
     }
 
@@ -174,15 +176,18 @@ export default function App() {
 
       const newHealth = Math.max(0, game.health - damage);
       const newLogs = [...game.logs, combatLog];
-      if (newHealth === 0) newLogs.push("ゲームオーバー...");
-
-      setGame(advanceRoomIfNeeded({
+      const nextState = {
         ...baseState,
         health: newHealth,
         score: game.score + value,
         lastSlainValue: newLastSlainValue,
         logs: newLogs,
-      }));
+      };
+
+      setGame(newHealth === 0
+        ? { ...nextState, phase: "game-over" as const }
+        : advanceRoomIfNeeded(nextState)
+      );
     }
 
     // ハートの場合は、回復薬を使用する
@@ -215,6 +220,7 @@ export default function App() {
   }
 
   function handleDungeonClick() {
+    if (game.phase !== "playing") return;
     if (game.canFlee) {
       // Null以外のRoomをシャッフルして山s札の下に加える
       const nonNullRoom = game.room.filter((card) => card !== null);
@@ -250,6 +256,17 @@ export default function App() {
 
   return (
     <div className="app">
+      {game.phase === "game-over" && (
+        <div className="overlay">
+          <div className="overlay__content">
+            <p className="overlay__title">ゲームオーバー</p>
+            <p className="overlay__score">スコア: {game.score}</p>
+            <button className="overlay__button" onClick={() => setGame(buildInitialState())}>
+              もう一度挑戦
+            </button>
+          </div>
+        </div>
+      )}
       {/* ステータスバー */}
       <div className="status-bar">
         <div className="status-group">
