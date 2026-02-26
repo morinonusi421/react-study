@@ -23,7 +23,7 @@ interface GameState {
   canUsePotion: boolean; // 回復薬を使用できるかどうか
   score: number; // スコア
   logs: string[]; // ゲームログ
-  phase: "playing" | "game-over"; // ゲームフェーズ
+  phase: "playing" | "game-over" | "game-clear"; // ゲームフェーズ
 }
 
 // =====================
@@ -53,7 +53,7 @@ function buildInitialState(): GameState {
     room: shuffled.slice(0, 4),
     equippedWeapon: null,
     lastSlainValue: null,
-    health: 20,
+    health: 2000,
     canFlee: true,
     canUsePotion: true,
     score: 0,
@@ -120,6 +120,28 @@ function getRankValue(rank: Rank): number {
   return parseInt(rank);
 }
 
+// ダンジョン踏破チェック：山札が空でルームも全処理済みならクリア状態を返す
+function checkGameClear(state: GameState, lastCard: Card): GameState | null {
+  if (state.dungeon.length > 0) return null;
+  if (state.room.some((c) => c !== null)) return null;
+
+  let bonus = state.health;
+  let log = `ダンジョン踏破！ HP残量ボーナス +${state.health}`;
+
+  if (lastCard.suit === "hearts") {
+    const potionValue = getRankValue(lastCard.rank);
+    bonus += potionValue;
+    log += `、回復薬ボーナス +${potionValue}`;
+  }
+
+  return {
+    ...state,
+    score: state.score + bonus,
+    phase: "game-clear",
+    logs: [...state.logs, log],
+  };
+}
+
 // roomの残りが1枚になったら山札から3枚補充し、ターンフラグをリセットする
 function advanceRoomIfNeeded(state: GameState): GameState {
   const remaining = state.room.filter((c): c is Card => c !== null);
@@ -165,9 +187,10 @@ export default function App() {
       if (canUseWeapon) {
         damage = Math.max(0, value - weaponValue!);
         newLastSlainValue = value;
-        combatLog = damage > 0
-          ? `モンスター（Lv.${value}）を武器で撃退！ ${damage}ダメージ`
-          : `モンスター（Lv.${value}）を武器で撃退！ ノーダメージ`;
+        combatLog =
+          damage > 0
+            ? `モンスター（Lv.${value}）を武器で撃退！ ${damage}ダメージ`
+            : `モンスター（Lv.${value}）を武器で撃退！ ノーダメージ`;
       } else {
         damage = value;
         const reason = weaponValue !== null ? "（武器使用制限）" : "";
@@ -184,38 +207,43 @@ export default function App() {
         logs: newLogs,
       };
 
-      setGame(newHealth === 0
-        ? { ...nextState, phase: "game-over" as const }
-        : advanceRoomIfNeeded(nextState)
-      );
+      if (newHealth === 0) {
+        setGame({ ...nextState, phase: "game-over" as const });
+      } else {
+        const advanced = advanceRoomIfNeeded(nextState);
+        setGame(checkGameClear(advanced, card) ?? advanced);
+      }
     }
 
     // ハートの場合は、回復薬を使用する
     else if (card.suit === "hearts") {
       if (game.canUsePotion) {
-        const healed = Math.min(game.health + value, 20) - game.health;
-        setGame(advanceRoomIfNeeded({
+        const healed = Math.min(game.health + value, 2000) - game.health;
+        const advanced = advanceRoomIfNeeded({
           ...baseState,
           health: game.health + healed,
           canUsePotion: false,
           logs: [...game.logs, `回復薬を使った！（HP +${healed}）`],
-        }));
+        });
+        setGame(checkGameClear(advanced, card) ?? advanced);
       } else {
-        setGame(advanceRoomIfNeeded({
+        const advanced = advanceRoomIfNeeded({
           ...baseState,
           logs: [...game.logs, "回復薬を捨てた（このターンはすでに使用済み）"],
-        }));
+        });
+        setGame(checkGameClear(advanced, card) ?? advanced);
       }
     }
 
     // ダイヤモンドの場合は、武器を拾う
     else if (card.suit === "diamonds") {
-      setGame(advanceRoomIfNeeded({
+      const advanced = advanceRoomIfNeeded({
         ...baseState,
         equippedWeapon: card,
         lastSlainValue: null,
         logs: [...game.logs, `武器（Lv.${value}）を装備した！`],
-      }));
+      });
+      setGame(checkGameClear(advanced, card) ?? advanced);
     }
   }
 
@@ -267,6 +295,17 @@ export default function App() {
           </div>
         </div>
       )}
+      {game.phase === "game-clear" && (
+        <div className="overlay overlay--clear">
+          <div className="overlay__content">
+            <p className="overlay__title">ダンジョン踏破！</p>
+            <p className="overlay__score">スコア: {game.score}</p>
+            <button className="overlay__button" onClick={() => setGame(buildInitialState())}>
+              もう一度挑戦
+            </button>
+          </div>
+        </div>
+      )}
       {/* ステータスバー */}
       <div className="status-bar">
         <div className="status-group">
@@ -294,7 +333,9 @@ export default function App() {
       {/* ログエリア */}
       <div className="log-area" ref={logRef}>
         {game.logs.map((log, i) => (
-          <div key={i} className="log-entry">{log}</div>
+          <div key={i} className="log-entry">
+            {log}
+          </div>
         ))}
       </div>
 
@@ -315,14 +356,8 @@ export default function App() {
         {/* 武器 */}
         <div className="weapon-section">
           <span className="weapon-label">Weapon</span>
-          {game.equippedWeapon ? (
-            <CardView card={game.equippedWeapon} />
-          ) : (
-            <div className="card-slot" />
-          )}
-          {game.lastSlainValue !== null && (
-            <span className="weapon-restriction">使用制限 ≤ {game.lastSlainValue}</span>
-          )}
+          {game.equippedWeapon ? <CardView card={game.equippedWeapon} /> : <div className="card-slot" />}
+          {game.lastSlainValue !== null && <span className="weapon-restriction">使用制限 ≤ {game.lastSlainValue}</span>}
         </div>
       </div>
     </div>
