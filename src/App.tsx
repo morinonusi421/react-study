@@ -1,167 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./game.css";
-
-// =====================
-// 型定義
-// =====================
-
-type Suit = "hearts" | "diamonds" | "clubs" | "spades";
-type Rank = "A" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K";
-
-interface Card {
-  suit: Suit;
-  rank: Rank;
-}
-
-interface GameState {
-  dungeon: Card[]; // 山札
-  room: (Card | null)[]; // 場に出た4枚
-  equippedWeapon: Card | null; // 装備中の武器
-  lastSlainValue: number | null; // 武器で最後に倒したモンスターの数値（使用制限チェック用）
-  health: number; // プレイヤーHP
-  canFlee: boolean; // 逃げることができるかどうか
-  canUsePotion: boolean; // 回復薬を使用できるかどうか
-  score: number; // スコア
-  logs: string[]; // ゲームログ
-  phase: "playing" | "game-over" | "game-clear"; // ゲームフェーズ
-}
-
-// =====================
-// 初期状態
-// =====================
-
-const ALL_RANKS: Rank[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const NON_FACE_RANKS: Rank[] = ["2", "3", "4", "5", "6", "7", "8", "9", "10"];
-
-function buildDungeon(): Card[] {
-  const cards: Card[] = [];
-  for (const rank of ALL_RANKS) {
-    cards.push({ suit: "spades", rank });
-    cards.push({ suit: "clubs", rank });
-  }
-  for (const rank of NON_FACE_RANKS) {
-    cards.push({ suit: "hearts", rank });
-    cards.push({ suit: "diamonds", rank });
-  }
-  return cards;
-}
-
-function buildInitialState(): GameState {
-  const shuffled = [...buildDungeon()].sort(() => Math.random() - 0.5);
-  return {
-    dungeon: shuffled.slice(4),
-    room: shuffled.slice(0, 4),
-    equippedWeapon: null,
-    lastSlainValue: null,
-    health: 2000,
-    canFlee: true,
-    canUsePotion: true,
-    score: 0,
-    logs: ["ダンジョンに挑む！"],
-    phase: "playing",
-  };
-}
+import { CardSlot } from "./components/CardSlot";
+import { CardView } from "./components/CardView";
+import { advanceRoomIfNeeded, buildInitialState, checkGameClear, getRankValue } from "./gameLogic";
+import { GameState } from "./types";
 
 const INITIAL_STATE: GameState = buildInitialState();
-
-// =====================
-// サブコンポーネント
-// =====================
-
-interface CardViewProps {
-  card: Card;
-  onClick?: () => void;
-}
-
-const SUIT_SYMBOL: Record<Suit, string> = {
-  hearts: "♥",
-  diamonds: "♦",
-  clubs: "♣",
-  spades: "♠",
-};
-
-function CardView({ card, onClick }: CardViewProps) {
-  const isRed = card.suit === "hearts" || card.suit === "diamonds";
-  const symbol = SUIT_SYMBOL[card.suit];
-
-  return (
-    <div className={`card ${isRed ? "card--red" : "card--black"}`} onClick={onClick}>
-      {/* 左上 */}
-      <div className="card__corner card__corner--top">
-        <span className="card__rank">{card.rank}</span>
-        <span className="card__suit">{symbol}</span>
-      </div>
-      {/* 中央 */}
-      <div className="card__center">
-        <span className="card__suit card__suit--large">{symbol}</span>
-      </div>
-      {/* 右下（180度回転） */}
-      <div className="card__corner card__corner--bottom">
-        <span className="card__rank">{card.rank}</span>
-        <span className="card__suit">{symbol}</span>
-      </div>
-    </div>
-  );
-}
-
-function CardSlot({ card, onClick }: { card: Card | null; onClick?: () => void }) {
-  if (card) {
-    return <CardView card={card} onClick={onClick} />;
-  }
-  return <div className="card-slot" />;
-}
-
-// ランクをnumberに変換する関数
-function getRankValue(rank: Rank): number {
-  if (rank === "A") return 14;
-  if (rank === "K") return 13;
-  if (rank === "Q") return 12;
-  if (rank === "J") return 11;
-  return parseInt(rank);
-}
-
-// ダンジョン踏破チェック：山札が空でルームも全処理済みならクリア状態を返す
-function checkGameClear(state: GameState, lastCard: Card): GameState | null {
-  if (state.dungeon.length > 0) return null;
-  if (state.room.some((c) => c !== null)) return null;
-
-  let bonus = state.health;
-  let log = `ダンジョン踏破！ HP残量ボーナス +${state.health}`;
-
-  if (lastCard.suit === "hearts") {
-    const potionValue = getRankValue(lastCard.rank);
-    bonus += potionValue;
-    log += `、回復薬ボーナス +${potionValue}`;
-  }
-
-  return {
-    ...state,
-    score: state.score + bonus,
-    phase: "game-clear",
-    logs: [...state.logs, log],
-  };
-}
-
-// roomの残りが1枚になったら山札から3枚補充し、ターンフラグをリセットする
-function advanceRoomIfNeeded(state: GameState): GameState {
-  const remaining = state.room.filter((c): c is Card => c !== null);
-  if (remaining.length !== 1) return state;
-
-  const drawn = state.dungeon.slice(0, 3);
-  const newDungeon = state.dungeon.slice(3);
-
-  return {
-    ...state,
-    room: [...remaining, ...drawn],
-    dungeon: newDungeon,
-    canFlee: true,
-    canUsePotion: true,
-  };
-}
-
-// =====================
-// メインコンポーネント
-// =====================
 
 export default function App() {
   const [game, setGame] = useState<GameState>(INITIAL_STATE);
@@ -250,12 +94,12 @@ export default function App() {
   function handleDungeonClick() {
     if (game.phase !== "playing") return;
     if (game.canFlee) {
-      // Null以外のRoomをシャッフルして山s札の下に加える
+      // Null以外のRoomをシャッフルして山札の下に加える
       const nonNullRoom = game.room.filter((card) => card !== null);
       const shuffledRoom = [...nonNullRoom].sort(() => Math.random() - 0.5);
       const newDungeon = [...game.dungeon, ...shuffledRoom];
 
-      // ダンジョンから4枚カードをドローして,roomにセットする
+      // ダンジョンから4枚カードをドローして、roomにセットする
       const drawnCards = newDungeon.slice(0, 4);
       const remainingDungeon = newDungeon.slice(4);
 
@@ -272,8 +116,6 @@ export default function App() {
       setGame({ ...game, logs: [...game.logs, msg] });
     }
   }
-
-  // --------------------------------
 
   const logRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -306,6 +148,7 @@ export default function App() {
           </div>
         </div>
       )}
+
       {/* ステータスバー */}
       <div className="status-bar">
         <div className="status-group">
