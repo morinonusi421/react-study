@@ -1,3 +1,4 @@
+import shuffle from "just-shuffle";
 import { ALL_RANKS, MAX_HEALTH, NON_FACE_RANKS } from "./constants";
 import { Card, GameState, Rank } from "./types";
 
@@ -23,7 +24,7 @@ export function buildDungeon(): Card[] {
 }
 
 export function buildInitialState(): GameState {
-  const shuffled = [...buildDungeon()].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(buildDungeon());
   return {
     dungeon: shuffled.slice(4),
     room: shuffled.slice(0, 4),
@@ -169,7 +170,7 @@ export function applyFleeBlocked(state: GameState): GameState {
 // 逃走したときのゲーム状態遷移
 export function applyFlee(state: GameState): { state: GameState; newIndices: number[] } {
   const nonNullRoom = state.room.filter((c): c is Card => c !== null);
-  const shuffledRoom = [...nonNullRoom].sort(() => Math.random() - 0.5);
+  const shuffledRoom = shuffle(nonNullRoom);
   const newDungeon = [...state.dungeon, ...shuffledRoom];
 
   const drawnCards = newDungeon.slice(0, 4);

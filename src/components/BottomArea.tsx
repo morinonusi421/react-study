@@ -93,7 +93,7 @@ export function BottomArea({ dungeonCount, equippedWeapon, lastSlainValue, canFl
         <span css={styles.weaponLabel}>Weapon</span>
         {equippedWeapon ? <CardView card={equippedWeapon} /> : <CardSlot card={null} />}
         {lastSlainValue !== null && (
-          <span css={styles.weaponRestriction}>使用制限 ≤ {lastSlainValue}</span>
+          <span css={styles.weaponRestriction}>使用制限 &lt; {lastSlainValue}</span>
         )}
       </div>
     </div>
