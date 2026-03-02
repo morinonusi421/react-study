@@ -1,6 +1,4 @@
-// src/components/CardSlot.tsx
-import React from "react";
-import { css } from "@emotion/css";
+import { css } from "@emotion/react";
 import { card as cardToken, colors } from "../styles/tokens";
 import { Card } from "../types";
 import { CardView } from "./CardView";
@@ -34,5 +32,5 @@ export function CardSlot({ card, onClick, isNew, animationDelay, onAnimationEnd 
       />
     );
   }
-  return <div className={slotStyle} />;
+  return <div css={slotStyle} />;
 }

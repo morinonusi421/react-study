@@ -1,32 +1,31 @@
 import React, { useState, useRef, useEffect } from "react";
-import { css, injectGlobal } from "@emotion/css";
+import { css, Global } from "@emotion/react";
 import { colors } from "./styles/tokens";
 import { CardSlot } from "./components/CardSlot";
 import { CardView } from "./components/CardView";
-import { advanceRoomIfNeeded, buildInitialState, checkGameClear, getRankValue } from "./gameLogic";
+import { applyFlee, applyFleeBlocked, applyRoomCard, buildInitialState } from "./gameLogic";
 import { GameState } from "./types";
 
-injectGlobal({
+const globalStyles = css({
   "*, *::before, *::after": { boxSizing: "border-box" },
   body: { margin: 0, padding: 0, background: "#1a1a2e" },
 });
 
 const styles = {
-  app: css({
-    position: "relative",
-    width: "100%",
-    maxWidth: "390px",
-    height: "100vh",
-    // @ts-ignore
-    height: "100dvh",
-    maxHeight: "844px",
-    margin: "0 auto",
-    background: colors.appBg,
-    display: "flex",
-    flexDirection: "column",
-    fontFamily: "sans-serif",
-    overflow: "hidden",
-  }),
+  app: css`
+    position: relative;
+    width: 100%;
+    max-width: 390px;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 844px;
+    margin: 0 auto;
+    background: ${colors.appBg};
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+    overflow: hidden;
+  `,
   overlay: css({
     position: "absolute",
     inset: 0,
@@ -164,7 +163,7 @@ const styles = {
   }),
   fleeButtonActive: css({ background: colors.orange, color: colors.textWhite }),
   fleeButtonDisabled: css({
-    background: colors.fleeBtnDisabledBg,
+    background: colors.actionDisabledBg,
     color: colors.textWhiteVeryFaint,
     cursor: "default",
   }),
@@ -188,133 +187,31 @@ const styles = {
   }),
 };
 
-const INITIAL_STATE: GameState = buildInitialState();
-
 export default function App() {
-  const [game, setGame] = useState<GameState>(INITIAL_STATE);
+  const [game, setGame] = useState<GameState>(() => buildInitialState());
   const [newCardIndices, setNewCardIndices] = useState<number[]>([0, 1, 2, 3]);
 
-  function checkAndSetReplenish(stateBeforeAdvance: GameState) {
-    const remaining = stateBeforeAdvance.room.filter((c) => c !== null).length;
-    if (remaining === 1) {
-      const nullIndices = stateBeforeAdvance.room
-        .map((c, i) => (c === null ? i : -1))
-        .filter((i) => i !== -1);
-      setNewCardIndices(nullIndices);
-    }
-  }
-
   function handleRoomCardClick(index: number) {
-    if (game.phase !== "playing" || game.room[index] == null) {
-      return;
-    }
-
-    const card = game.room[index]!;
-    const baseState = { ...game, room: game.room.map((c, i) => (i === index ? null : c)), canFlee: false };
-    const value = getRankValue(card.rank);
-
-    // クラブかスペードの場合は、モンスターとの戦闘になる
-    if (card.suit === "clubs" || card.suit === "spades") {
-      const weaponValue = game.equippedWeapon ? getRankValue(game.equippedWeapon.rank) : null;
-      const canUseWeapon = weaponValue !== null && (game.lastSlainValue === null || value < game.lastSlainValue);
-
-      let damage: number;
-      let newLastSlainValue = game.lastSlainValue;
-      let combatLog: string;
-
-      if (canUseWeapon) {
-        damage = Math.max(0, value - weaponValue!);
-        newLastSlainValue = value;
-        combatLog =
-          damage > 0
-            ? `モンスター（Lv.${value}）を武器で撃退！ ${damage}ダメージ`
-            : `モンスター（Lv.${value}）を武器で撃退！ ノーダメージ`;
-      } else {
-        damage = value;
-        const reason = weaponValue !== null ? "（武器使用制限）" : "";
-        combatLog = `モンスター（Lv.${value}）と素手で戦った！ ${damage}ダメージ${reason}`;
-      }
-
-      const newHealth = Math.max(0, game.health - damage);
-      const newLogs = [...game.logs, combatLog];
-      const nextState = {
-        ...baseState,
-        health: newHealth,
-        score: game.score + value,
-        lastSlainValue: newLastSlainValue,
-        logs: newLogs,
-      };
-
-      if (newHealth === 0) {
-        setGame({ ...nextState, phase: "game-over" as const });
-      } else {
-        const advanced = advanceRoomIfNeeded(nextState);
-        checkAndSetReplenish(nextState);
-        setGame(checkGameClear(advanced, card) ?? advanced);
-      }
-    }
-
-    // ハートの場合は、回復薬を使用する
-    else if (card.suit === "hearts") {
-      if (game.canUsePotion) {
-        const healed = Math.min(game.health + value, 2000) - game.health;
-        const nextState = {
-          ...baseState,
-          health: game.health + healed,
-          canUsePotion: false,
-          logs: [...game.logs, `回復薬を使った！（HP +${healed}）`],
-        };
-        const advanced = advanceRoomIfNeeded(nextState);
-        checkAndSetReplenish(nextState);
-        setGame(checkGameClear(advanced, card) ?? advanced);
-      } else {
-        const nextState = {
-          ...baseState,
-          logs: [...game.logs, "回復薬を捨てた（このターンはすでに使用済み）"],
-        };
-        const advanced = advanceRoomIfNeeded(nextState);
-        checkAndSetReplenish(nextState);
-        setGame(checkGameClear(advanced, card) ?? advanced);
-      }
-    }
-
-    // ダイヤモンドの場合は、武器を拾う
-    else if (card.suit === "diamonds") {
-      const nextState = {
-        ...baseState,
-        equippedWeapon: card,
-        lastSlainValue: null,
-        logs: [...game.logs, `武器（Lv.${value}）を装備した！`],
-      };
-      const advanced = advanceRoomIfNeeded(nextState);
-      checkAndSetReplenish(nextState);
-      setGame(checkGameClear(advanced, card) ?? advanced);
-    }
+    if (game.phase !== "playing" || game.room[index] == null) return;
+    const { state, newIndices } = applyRoomCard(game, index);
+    setGame(state);
+    setNewCardIndices(newIndices);
   }
 
   function handleDungeonClick() {
     if (game.phase !== "playing") return;
     if (game.canFlee) {
-      const nonNullRoom = game.room.filter((card) => card !== null);
-      const shuffledRoom = [...nonNullRoom].sort(() => Math.random() - 0.5);
-      const newDungeon = [...game.dungeon, ...shuffledRoom];
-
-      const drawnCards = newDungeon.slice(0, 4);
-      const remainingDungeon = newDungeon.slice(4);
-
-      setGame({
-        ...game,
-        dungeon: remainingDungeon,
-        room: drawnCards,
-        canFlee: false,
-        logs: [...game.logs, "部屋から逃げた！"],
-      });
-      setNewCardIndices([0, 1, 2, 3]);
+      const { state, newIndices } = applyFlee(game);
+      setGame(state);
+      setNewCardIndices(newIndices);
     } else {
-      const isInProgress = game.room.some((c) => c === null);
-      const msg = isInProgress ? "攻略中のフロアからは逃げられない！" : "連続して逃げることはできない！";
-      setGame({ ...game, logs: [...game.logs, msg] });
+      setGame(applyFleeBlocked(game));
     }
+  }
+
+  function handleRestart() {
+    setGame(buildInitialState());
+    setNewCardIndices([0, 1, 2, 3]);
   }
 
   const logRef = useRef<HTMLDivElement>(null);
@@ -325,95 +222,102 @@ export default function App() {
   }, [game.logs]);
 
   return (
-    <div className={styles.app}>
-      {game.phase === "game-over" && (
-        <div className={styles.overlay}>
-          <div className={styles.overlayContent}>
-            <p className={styles.overlayTitle}>ゲームオーバー</p>
-            <p className={styles.overlayScore}>スコア: {game.score}</p>
-            <button className={styles.overlayButton} onClick={() => { setGame(buildInitialState()); setNewCardIndices([0, 1, 2, 3]); }}>
-              もう一度挑戦
+    <>
+      <Global styles={globalStyles} />
+      <div css={styles.app}>
+        {game.phase === "game-over" && (
+          <div css={styles.overlay}>
+            <div css={styles.overlayContent}>
+              <p css={styles.overlayTitle}>ゲームオーバー</p>
+              <p css={styles.overlayScore}>スコア: {game.score}</p>
+              <button css={styles.overlayButton} onClick={handleRestart}>
+                もう一度挑戦
+              </button>
+            </div>
+          </div>
+        )}
+        {game.phase === "game-clear" && (
+          <div css={[styles.overlay, styles.overlayClear]}>
+            <div css={styles.overlayContent}>
+              <p css={styles.overlayTitle}>ダンジョン踏破！</p>
+              <p css={styles.overlayScore}>スコア: {game.score}</p>
+              <button css={styles.overlayButton} onClick={handleRestart}>
+                もう一度挑戦
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ステータスバー */}
+        <div css={styles.statusBar}>
+          <div css={styles.statusGroup}>
+            <span css={styles.statusIcon}>♥</span>
+            <span css={styles.statusValue}>{game.health}</span>
+            <span css={styles.statusLabel}>HP</span>
+          </div>
+          <div css={styles.statusGroup}>
+            <span css={styles.statusIcon}>★</span>
+            <span css={styles.statusValue}>{game.score}</span>
+            <span css={styles.statusLabel}>Score</span>
+          </div>
+        </div>
+
+        {/* Room（メイン操作エリア） */}
+        <div css={styles.roomArea}>
+          <span css={styles.roomLabel}>Room</span>
+          <div css={styles.roomSlots}>
+            {game.room.map((card, i) => {
+              const newIndex = newCardIndices.indexOf(i);
+              const isNew = newIndex >= 0;
+              return (
+                <CardSlot
+                  key={i}
+                  card={card}
+                  onClick={() => handleRoomCardClick(i)}
+                  isNew={isNew}
+                  animationDelay={isNew ? newIndex * 50 : 0}
+                  onAnimationEnd={
+                    isNew ? () => setNewCardIndices((prev) => prev.filter((idx) => idx !== i)) : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ログエリア */}
+        <div css={styles.logArea} ref={logRef}>
+          {game.logs.map((log, i) => (
+            <div key={i} css={styles.logEntry}>
+              {log}
+            </div>
+          ))}
+        </div>
+
+        {/* 下部エリア */}
+        <div css={styles.bottomArea}>
+          {/* Dungeon */}
+          <div css={styles.dungeonSection}>
+            <span css={styles.dungeonCount}>{game.dungeon.length}</span>
+            <span css={styles.dungeonLabel}>残り山札</span>
+            <button
+              css={[styles.fleeButtonBase, game.canFlee ? styles.fleeButtonActive : styles.fleeButtonDisabled]}
+              onClick={handleDungeonClick}
+            >
+              逃走
             </button>
           </div>
-        </div>
-      )}
-      {game.phase === "game-clear" && (
-        <div className={`${styles.overlay} ${styles.overlayClear}`}>
-          <div className={styles.overlayContent}>
-            <p className={styles.overlayTitle}>ダンジョン踏破！</p>
-            <p className={styles.overlayScore}>スコア: {game.score}</p>
-            <button className={styles.overlayButton} onClick={() => { setGame(buildInitialState()); setNewCardIndices([0, 1, 2, 3]); }}>
-              もう一度挑戦
-            </button>
+
+          {/* 武器 */}
+          <div css={styles.weaponSection}>
+            <span css={styles.weaponLabel}>Weapon</span>
+            {game.equippedWeapon ? <CardView card={game.equippedWeapon} /> : <CardSlot card={null} />}
+            {game.lastSlainValue !== null && (
+              <span css={styles.weaponRestriction}>使用制限 ≤ {game.lastSlainValue}</span>
+            )}
           </div>
         </div>
-      )}
-
-      {/* ステータスバー */}
-      <div className={styles.statusBar}>
-        <div className={styles.statusGroup}>
-          <span className={styles.statusIcon}>♥</span>
-          <span className={styles.statusValue}>{game.health}</span>
-          <span className={styles.statusLabel}>HP</span>
-        </div>
-        <div className={styles.statusGroup}>
-          <span className={styles.statusIcon}>★</span>
-          <span className={styles.statusValue}>{game.score}</span>
-          <span className={styles.statusLabel}>Score</span>
-        </div>
       </div>
-
-      {/* Room（メイン操作エリア） */}
-      <div className={styles.roomArea}>
-        <span className={styles.roomLabel}>Room</span>
-        <div className={styles.roomSlots}>
-          {game.room.map((card, i) => {
-            const newIndex = newCardIndices.indexOf(i);
-            const isNew = newIndex >= 0;
-            return (
-              <CardSlot
-                key={i}
-                card={card}
-                onClick={() => handleRoomCardClick(i)}
-                isNew={isNew}
-                animationDelay={isNew ? newIndex * 50 : 0}
-                onAnimationEnd={isNew ? () => setNewCardIndices((prev) => prev.filter((idx) => idx !== i)) : undefined}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ログエリア */}
-      <div className={styles.logArea} ref={logRef}>
-        {game.logs.map((log, i) => (
-          <div key={i} className={styles.logEntry}>
-            {log}
-          </div>
-        ))}
-      </div>
-
-      {/* 下部エリア */}
-      <div className={styles.bottomArea}>
-        {/* Dungeon */}
-        <div className={styles.dungeonSection}>
-          <span className={styles.dungeonCount}>{game.dungeon.length}</span>
-          <span className={styles.dungeonLabel}>残り山札</span>
-          <button
-            className={`${styles.fleeButtonBase} ${game.canFlee ? styles.fleeButtonActive : styles.fleeButtonDisabled}`}
-            onClick={handleDungeonClick}
-          >
-            逃走
-          </button>
-        </div>
-
-        {/* 武器 */}
-        <div className={styles.weaponSection}>
-          <span className={styles.weaponLabel}>Weapon</span>
-          {game.equippedWeapon ? <CardView card={game.equippedWeapon} /> : <CardSlot card={null} />}
-          {game.lastSlainValue !== null && <span className={styles.weaponRestriction}>使用制限 ≤ {game.lastSlainValue}</span>}
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

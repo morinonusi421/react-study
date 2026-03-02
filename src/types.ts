@@ -19,10 +19,3 @@ export interface GameState {
   phase: "playing" | "game-over" | "game-clear"; // ゲームフェーズ
 }
 
-export interface CardViewProps {
-  card: Card;
-  onClick?: () => void;
-  isNew?: boolean;
-  animationDelay?: number;
-  onAnimationEnd?: () => void;
-}

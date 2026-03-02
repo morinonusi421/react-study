@@ -28,7 +28,7 @@ export const colors = {
   // アクション
   orange: "#e05c2a",
   gold: "#ffd700",
-  fleeBtnDisabledBg: "rgba(255, 255, 255, 0.15)",
+  actionDisabledBg: "rgba(255, 255, 255, 0.15)",
 };
 
 export const card = {
