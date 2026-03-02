@@ -60,7 +60,7 @@ export function checkGameClear(state: GameState, lastCard: Card): GameState | nu
   };
 }
 
-// roomの残りが1枚になったら山札から3枚補充し、ターンフラグをリセットする
+// roomの残りが1枚になったら山札から3枚補充し、null スロットをその場で埋める
 export function advanceRoomIfNeeded(state: GameState): GameState {
   const remaining = state.room.filter((c): c is Card => c !== null);
   if (remaining.length !== 1) return state;
@@ -68,9 +68,12 @@ export function advanceRoomIfNeeded(state: GameState): GameState {
   const drawn = state.dungeon.slice(0, 3);
   const newDungeon = state.dungeon.slice(3);
 
+  let drawIndex = 0;
+  const newRoom = state.room.map((c) => (c !== null ? c : drawn[drawIndex++]));
+
   return {
     ...state,
-    room: [...remaining, ...drawn],
+    room: newRoom,
     dungeon: newDungeon,
     canFlee: true,
     canUsePotion: true,

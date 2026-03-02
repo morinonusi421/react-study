@@ -22,4 +22,7 @@ export interface GameState {
 export interface CardViewProps {
   card: Card;
   onClick?: () => void;
+  isNew?: boolean;
+  animationDelay?: number;
+  onAnimationEnd?: () => void;
 }
